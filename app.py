@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 from datetime import datetime
 
@@ -69,14 +70,18 @@ def on_message(client, userdata, msg):
 
 
 def start_mqtt():
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    client.loop_forever()
+    try:
+        client = mqtt.Client()
+        client.on_connect = on_connect
+        client.on_message = on_message
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.loop_forever()
+    except Exception as e:
+        print(f"Could not connect to MQTT broker: {e}")
 
 
-app = dash.Dash(__name__)
+app = dash.Dash(_name_)
+server = app.server  # Needed for gunicorn/Render deployment
 
 DARK_BG = "#1e222d"
 CARD_BG = "#2a2e3d"
@@ -235,7 +240,8 @@ def update_dashboard(n):
     return fig_temp, fig_hum, fig_light, fig_dist, list(telemetry_logs)
 
 
-if __name__ == "__main__":
-    mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
-    mqtt_thread.start()
-    app.run(host="0.0.0.0", port=8050)
+mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
+mqtt_thread.start()
+
+if _name_ == "_main_":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8050)), debug=False)
